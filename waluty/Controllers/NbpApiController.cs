@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
 using waluty.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace waluty.Controllers
 {
@@ -16,21 +17,30 @@ namespace waluty.Controllers
         {
             _httpClient = httpClient;
         }
-        
-        //subroute for fetching exchange rates
-        [HttpGet("rates")]
-        public async Task<IActionResult> GetRates()
+
+        //method for fetching currencies data from NBP API
+        private async Task<List<ExchangeRateTable>?> GetCurrenciesInfo()
         {
-            //fetching exchange rates from NBP API and storing response to a variable
+            //fetching storing response to a variable
             var nbp_response = await _httpClient.GetAsync("https://api.nbp.pl/api/exchangerates/tables/A?format=json");
 
             //checking if response is successful, sending error msg if not
             if (!nbp_response.IsSuccessStatusCode)
-                return StatusCode((int)nbp_response.StatusCode, "Error fetching data");
+                return null;
 
-            //converting response to objects
-            var nbp_response_objects = await nbp_response.Content.ReadFromJsonAsync < List < ExchangeRateTable>>();
-            return Ok(nbp_response_objects);
+            //converting API response to list of objects
+            return await nbp_response.Content.ReadFromJsonAsync<List<ExchangeRateTable>>();
+        }
+
+        [HttpGet("currencies")]
+        public async Task<IActionResult> ShowCurrencies()
+        {
+            var currencies_data = await GetCurrenciesInfo();
+
+            //checking if data is null
+            if (currencies_data == null)
+                return StatusCode(500, "error fetching currencies data");
+            return Ok(currencies_data);
         }
     }
 }
