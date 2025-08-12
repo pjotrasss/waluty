@@ -1,4 +1,6 @@
-﻿namespace waluty.Models
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace waluty.Models
 {
     //model of nbp's currency rate record in exchange rate table
     public class CurrencyRate
@@ -9,9 +11,10 @@
         //currency code
         public string Code { get; set; } = "";
         //exchange rate
+        [Precision(18, 6)]
         public decimal Mid { get; set; }
 
         public int ExchangeRateTableId { get; set; }
-        public ExchangeRateTable ExchangeRateTable { get; set; }
+        public ExchangeRateTable ExchangeRateTable { get; set; } = new ExchangeRateTable();
     }
 }
