@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
 
 namespace waluty.Models
 {
@@ -16,6 +17,8 @@ namespace waluty.Models
 
         //Foreign Key
         public int ExchangeRateTableId { get; set; }
+
+        [JsonIgnore] //preventing json cycling
         public ExchangeRateTable ExchangeRateTable { get; set; } = null!;
     }
 }
