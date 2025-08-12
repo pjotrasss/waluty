@@ -15,6 +15,5 @@ namespace waluty.Models
         public decimal Mid { get; set; }
 
         public int ExchangeRateTableId { get; set; }
-        public ExchangeRateTable ExchangeRateTable { get; set; } = new ExchangeRateTable();
     }
 }
