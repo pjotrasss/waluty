@@ -13,7 +13,7 @@ namespace waluty.Controllers
     public class NbpApiController : ControllerBase
     {
         //adding httpclient
-        private HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
         private readonly CurrenciesDbContext _db;
 
         public NbpApiController(HttpClient httpClient, CurrenciesDbContext db)
@@ -39,40 +39,49 @@ namespace waluty.Controllers
         //method for saving currencies info to db
         private async Task SaveCurrenciesToDb(List<ExchangeRateTable> ReturnedTables)
         {
-            var ReturnedTable = ReturnedTables.FirstOrDefault();
+            //! because ReturnedTable can't be null - check in ShowCurrenciesFromApi before calling this method
+            var ReturnedTable = ReturnedTables.FirstOrDefault()!;
 
-            //iterating through currencies in API response
-            //! because ReturnedTable can't be null - check in ShowCurrencies() before calling this method
-            foreach (var currency in ReturnedTable!.Rates)
+            var ExistingTable = await _db.ExchangeRateTables
+                .FirstOrDefaultAsync(table => table.EffectiveDate == ReturnedTable.EffectiveDate);
+            if (ExistingTable != null)
             {
-                var CurrencyObject = new CurrencyRate
+                Console.WriteLine($"Table for date {ReturnedTable.EffectiveDate} already exists, stopping execution");
+                return;
+            }
+
+            //adding table to db
+            _db.ExchangeRateTables.Add(ReturnedTable);
+            await _db.SaveChangesAsync();
+            Console.WriteLine($"Added exchange rate table for date {ReturnedTable.EffectiveDate} to db");
+
+            var CurrencyObjects = ReturnedTable.Rates.Select(
+                currency => new CurrencyRate
                 {
                     Currency = currency.Currency,
                     Code = currency.Code,
-                    Mid = currency.Mid
-                };
+                    Mid = currency.Mid,
+                    ExchangeRateTableId = ReturnedTable.Id
+                }
+            ).ToList();
 
-                //queuing object to be added to db
-                _db.CurrencyRates.Add(CurrencyObject);
-                Console.WriteLine($"Added {CurrencyObject.Currency} to database queue");
-            }
+            //adding objects to db queue
+            _db.CurrencyRates.AddRange(CurrencyObjects);
 
             //adding queued objects to db
-
-            int AddedCurrenciesCount = _db.ChangeTracker.Entries<CurrencyRate>().Count(e => e.State == EntityState.Added);
-
             try
             {
                 await _db.SaveChangesAsync();
-                Console.WriteLine($"Added {AddedCurrenciesCount} currencies to db");
+                Console.WriteLine($"Added {CurrencyObjects.Count} currencies to db");
             } catch (Exception exception)
             {
                 Console.WriteLine($"Error saving to db {exception}");
             }
         }
 
-        [HttpGet("currencies")]
-        public async Task<IActionResult> ShowCurrencies()
+        //method for showing currencies from API and saving them to db
+        [HttpGet("api-currencies")]
+        public async Task<IActionResult> ShowCurrenciesFromApi()
         {
             var currencies_data = await GetCurrenciesInfo();
 
@@ -84,6 +93,15 @@ namespace waluty.Controllers
             await SaveCurrenciesToDb(currencies_data);
 
             return Ok(currencies_data);
+        }
+
+        //method for showing currencies rates from db
+        [HttpGet("db-currencies")]
+        public async Task<IActionResult> ShowCurrenciesFromDb()
+        {
+            var CurrenciesRates = await _db.CurrencyRates
+                .Include(currency => currency.ExchangeRateTable).ToListAsync();
+            return Ok(CurrenciesRates);
         }
     }
 }
