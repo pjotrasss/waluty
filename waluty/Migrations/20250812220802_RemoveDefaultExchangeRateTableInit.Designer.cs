@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using waluty.Data;
 
@@ -11,9 +12,11 @@ using waluty.Data;
 namespace waluty.Migrations
 {
     [DbContext(typeof(CurrenciesDbContext))]
-    partial class CurrenciesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250812220802_RemoveDefaultExchangeRateTableInit")]
+    partial class RemoveDefaultExchangeRateTableInit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
