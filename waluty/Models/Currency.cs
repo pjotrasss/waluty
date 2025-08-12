@@ -14,6 +14,8 @@ namespace waluty.Models
         [Precision(18, 6)]
         public decimal Mid { get; set; }
 
+        //Foreign Key
         public int ExchangeRateTableId { get; set; }
+        public ExchangeRateTable ExchangeRateTable { get; set; } = null!;
     }
 }
