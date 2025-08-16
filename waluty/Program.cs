@@ -6,6 +6,7 @@ using waluty.Data;
 var builder = WebApplication.CreateBuilder(args);
 //add controllers to app
 builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 //http client for API calls
 builder.Services.AddHttpClient();
 //context registrating for db
