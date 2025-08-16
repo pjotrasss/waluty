@@ -10,7 +10,7 @@ namespace waluty.Controllers
     [ApiController]
     //base route for controller
     [Route("/nbp")]
-    public class NbpApiController : ControllerBase
+    public class NbpApiController : Controller
     {
         //adding httpclient
         private readonly HttpClient _httpClient;
@@ -100,8 +100,10 @@ namespace waluty.Controllers
         public async Task<IActionResult> ShowCurrenciesFromDb()
         {
             var CurrenciesRates = await _db.CurrencyRates
-                .Include(currency => currency.ExchangeRateTable).ToListAsync();
-            return Ok(CurrenciesRates);
+                .Include(currency => currency.ExchangeRateTable)
+                .ToListAsync();
+
+            return View(CurrenciesRates);
         }
     }
 }
