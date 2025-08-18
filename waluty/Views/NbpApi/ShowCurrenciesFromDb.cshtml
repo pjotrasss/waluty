@@ -1,0 +1,40 @@
+﻿@model waluty.Models.CurrenciesView
+
+<!Doctype html>
+<html lang="en">
+	<head>
+		<link rel="stylesheet" />
+		<title>Exchange rates</title>
+	</head>
+	<body>
+		<form method="get" asp-action="ShowCurrenciesFromDb">
+			<select name="selectedDate" onchange="this.form.submit()">
+				@foreach (var date in Model.AvailableDates)
+				{
+					<option value="@date.ToString("yyyy-MM-dd")"@(date.Date == Model.SelectedDate ? "selected" : "")>
+						@date.ToString("yyyy-MM-dd")
+					</option>
+				}
+			</select>
+		</form>
+		<table>
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Code</th>
+					<th>Exchange Rate</th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var currency in Model.Rates)
+				{
+					<tr>
+						<td>@currency.Currency</td>
+						<td>@currency.Code</td>
+						<td>@currency.Mid</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</body>
+</html>
