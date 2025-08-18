@@ -23,12 +23,14 @@ namespace waluty.Controllers
         }
 
         //method for fetching currencies data from NBP API
-        private async Task<List<ExchangeRateTable>?> GetCurrenciesInfo()
+        private async Task<List<ExchangeRateTable>?> GetCurrenciesInfo(DateTime RatesDate)
         {
+            //formating date
+            var FormattedDate = RatesDate.ToString("yyyy-MM-dd");
             //fetching storing response to a variable
-            var nbp_response = await _httpClient.GetAsync("https://api.nbp.pl/api/exchangerates/tables/A?format=json");
+            var nbp_response = await _httpClient.GetAsync($"https://api.nbp.pl/api/exchangerates/tables/A/{FormattedDate}/?format=json");
 
-            //checking if response is successful, sending error msg if not
+            //checking if response is successful, returning null if not
             if (!nbp_response.IsSuccessStatusCode)
                 return null;
 
@@ -81,29 +83,76 @@ namespace waluty.Controllers
 
         //method for showing currencies from API and saving them to db
         [HttpGet("api-currencies")]
-        public async Task<IActionResult> ShowCurrenciesFromApi()
+        public async Task<IActionResult> ShowCurrenciesFromApi(DateTime? date)
         {
-            var currencies_data = await GetCurrenciesInfo();
+            //if date is null ask user to choose it
+            if (date == null)
+            {
+                var ViewData = new FetchCurrenciesView
+                {
+                    Message = "Choose date to fetch exchange rates"
+                };
+                return View(ViewData);
+            }
+
+            var currencies_data = await GetCurrenciesInfo(date.Value);
 
             //checking if data is null
             if (currencies_data == null || !currencies_data.Any())
-                return StatusCode(500, "error fetching currencies data");
+            {
+                var ViewData = new FetchCurrenciesView
+                {
+                    Message = "Error Fetching data from API",
+                    SelectedDate = date.Value
+                };
+                return View(ViewData);
+            };
 
             //calling method for saving data from API to db
             await SaveCurrenciesToDb(currencies_data);
-
-            return Ok(currencies_data);
+            var ApiData = new FetchCurrenciesView
+            {
+                Message = "Exchange rates fetched succesfully",
+                SelectedDate = date.Value
+            };
+            return View(ApiData);
         }
 
         //method for showing currencies rates from db
         [HttpGet("db-currencies")]
-        public async Task<IActionResult> ShowCurrenciesFromDb()
+        public async Task<IActionResult> ShowCurrenciesFromDb(DateTime? selectedDate)
         {
-            var CurrenciesRates = await _db.CurrencyRates
-                .Include(currency => currency.ExchangeRateTable)
+            //find all unique table dates
+            var ADates = await _db.ExchangeRateTables
+                .Select(table => table.EffectiveDate.Date)
+                .Distinct()
+                .OrderByDescending(date => date.Date)
                 .ToListAsync();
 
-            return View(CurrenciesRates);
+            //checking if date is specified by user
+            //assigning current date if not
+            if (selectedDate == null)
+            {
+                selectedDate = DateTime.Today;
+            }
+
+            //select currencies from db for specified date
+            //groupby is for selecting only one record for every currency
+            var CurrenciesRates = await _db.CurrencyRates
+                .Include(currency => currency.ExchangeRateTable)
+                .Where(currency => currency.ExchangeRateTable.EffectiveDate.Date == selectedDate)
+                .GroupBy(currency => currency.Code)
+                .Select(group => group.First())
+                .ToListAsync();
+
+            var ViewData = new CurrenciesView
+            {
+                AvailableDates = ADates,
+                SelectedDate = selectedDate,
+                Rates = CurrenciesRates
+            };
+
+            return View(ViewData);
         }
     }
 }
