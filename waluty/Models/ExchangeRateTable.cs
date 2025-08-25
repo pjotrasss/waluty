@@ -9,8 +9,5 @@
 
         //table date
         public DateTime EffectiveDate { get; set; }
-
-        //all exchange rates in table
-        public List<CurrencyRate> Rates { get; set; } = new List<CurrencyRate>();
     }
 }
